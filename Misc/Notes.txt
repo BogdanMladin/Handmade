@@ -1,0 +1,4 @@
+	D013 - 1:09:48 - explanation for unions
+	D017 - 0:17:00 - the 32bit build
+
+https://guide.handmadehero.org/code/day020/
