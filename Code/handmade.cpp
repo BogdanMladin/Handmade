@@ -16,6 +16,9 @@ static void GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz) {
     *SampleOut++ = SampleValue;
 
     tsine += 2.0f * Pi32 * 1.0f / (float)WavePeriod;
+    if (tsine > 2.0f * Pi32) {
+      tsine -= 2.0f * Pi32;
+    }
   }
 }
 
@@ -39,8 +42,7 @@ static void RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset,
 }
 
 static void GameUpdateAndRender(game_memory *Memory, game_input *Input,
-                                game_offscreen_buffer *Buffer,
-                                game_sound_output_buffer *SoundBuffer) {
+                                game_offscreen_buffer *Buffer) {
   // Assert((&Input->Controllers[0].Terminator -
   // &Input->Controllers[0].Buttons[0]) ==
   // (ArrayCount(Input->Controllers[0].Buttons)));
@@ -83,6 +85,11 @@ static void GameUpdateAndRender(game_memory *Memory, game_input *Input,
   }*/
 
   // TODO: allow sample offsets heere
-  GameOutputSound(SoundBuffer, GameState->ToneHz);
   RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+}
+
+static void GameGetSoundSamples(game_memory *Memory,
+                                game_sound_output_buffer *SoundBuffer) {
+  game_state *GameState = (game_state *)Memory->PermanentStorage;
+  GameOutputSound(SoundBuffer, GameState->ToneHz);
 }

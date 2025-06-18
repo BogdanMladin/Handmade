@@ -149,5 +149,7 @@ inline game_controller_input *GetController(game_input *Input,
 }
 
 static void GameUpdateAndRender(game_memory *Memory, game_input *Input,
-                                game_offscreen_buffer *Buffer,
+                                game_offscreen_buffer *Buffer);
+
+static void GameGetSoundSamples(game_memory *Memory,
                                 game_sound_output_buffer *SoundBuffer);
