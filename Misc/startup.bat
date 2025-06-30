@@ -1,6 +1,6 @@
 @echo off
 
-subst w: c:\Work_w
+subst w: C:\Users\bogda\_BogdanLocal\Handmade\Data
 call C:\"Program Files"\"Microsoft Visual Studio"\2022\Community\VC\Auxiliary\Build\vcvarsall.bat x64
 set path=w:\handmade\misc\;%path%
 cd w:\Handmade\Misc
