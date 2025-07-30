@@ -1,2 +1,6 @@
 BasedOnStyle: Microsoft
 ColumnLimit: 100
+
+BinPackArguments: false
+BinPackParameters: false
+AllowAllArgumentsOnNextLine: false

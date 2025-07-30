@@ -1,5 +1,6 @@
 #include "handmade.h"
-static void GameOutputSound(game_state *GameState, game_sound_output_buffer *SoundBuffer,
+static void GameOutputSound(game_state *GameState,
+                            game_sound_output_buffer *SoundBuffer,
                             int ToneHz)
 {
 
@@ -10,8 +11,12 @@ static void GameOutputSound(game_state *GameState, game_sound_output_buffer *Sou
     for (int Sampleindex = 0; Sampleindex < SoundBuffer->SampleCountToOutput; ++Sampleindex)
     {
 
+#if 0
         float SineValue = sinf(GameState->tSine);
-        uint16_t SampleValue = (int16_t)(SineValue * ToneVolume);
+        int16 SampleValue = (int16_t)(SineValue * ToneVolume);
+#else
+        int16 SampleValue = 0;
+#endif
         *SampleOut++ = SampleValue;
         *SampleOut++ = SampleValue;
 
@@ -43,11 +48,34 @@ static void RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int 
     }
 }
 
+internal void RenderPlayer(game_offscreen_buffer *Buffer, int PlayerX, int PlayerY)
+{
+    uint8 *EndOfBuffer = (uint8 *)Buffer->Memory + (Buffer->Pitch * Buffer->Height);
+    uint32 Color = 0xFFFFFFFF;
+    int Top = PlayerY;
+    int Bottom = PlayerY + 10;
+    for (int X = PlayerX; X < PlayerX + 10; ++X)
+    {
+        uint8_t *Pixel =
+            ((uint8 *)Buffer->Memory + X * Buffer->BytesPerPixel + Top * Buffer->Pitch);
+        for (int Y = Top; Y < Bottom; ++Y)
+        {
+            if ((Pixel >= Buffer->Memory) && ((Pixel + 4) <= EndOfBuffer))
+            {
+                *(uint32_t *)Pixel = Color;
+            }
+            Pixel += Buffer->Pitch;
+        }
+    }
+}
+
 extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
-    // Assert((&Input->Controllers[0].Terminator -
-    // &Input->Controllers[0].Buttons[0]) ==
-    // (ArrayCount(Input->Controllers[0].Buttons)));
+    Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) ==
+           (ArrayCount(Input->Controllers[0].Buttons)));
+    // NOTE(Bogdan): This assert checks if the button array in the game_controller_input struct is
+    // the same size as the struct it makes a union with
+
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
 
     game_state *GameState = (game_state *)Memory->PermanentStorage;
@@ -58,15 +86,18 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
         debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Filename);
         if (File.Contents)
         {
-            Memory->DEBUGPlatformWriteEntireFile("w:/handmade/data/test.out", File.ContentSize,
+            Memory->DEBUGPlatformWriteEntireFile("w:/handmade/data/test.out",
+                                                 File.ContentSize,
                                                  File.Contents);
             Memory->DEBUGPlatformFreeFileMemory(File.Contents);
         }
 
         GameState->ToneHz = 256;
-        GameState->GreenOffset = 0; // NOTE(Bogdan): this shouldn't be here
-        GameState->BlueOffset = 0;  // NOTE(Bogdan): this shouldn't be here
         GameState->tSine = 0.0f;
+
+        GameState->PlayerX = 100;
+        GameState->PlayerY = 100;
+
         Memory->IsInitialised = true;
     }
 
@@ -88,7 +119,39 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
             {
                 GameState->BlueOffset += 1;
             }
+
+            // NOTE(Bogdan): What follows is an ecquivalent of what he does with the controller
+
+            int PalPixelsPerFrame = 10;
+
+            if (Controller->MoveLeft.EndedDown)
+            {
+                GameState->PlayerX -= PalPixelsPerFrame;
+            }
+            if (Controller->MoveRight.EndedDown)
+            {
+                GameState->PlayerX += PalPixelsPerFrame;
+            }
+            if (Controller->MoveUp.EndedDown)
+            {
+                GameState->PlayerY -= PalPixelsPerFrame;
+            }
+            if (Controller->MoveDown.EndedDown)
+            {
+                GameState->PlayerY += PalPixelsPerFrame;
+            }
+            // NOTE_END
         }
+        if (GameState->tJump > 0)
+        {
+            GameState->PlayerY += (int)(10.0f * sinf(Pi32 * GameState->tJump));
+        }
+
+        if (Controller->ActionDown.EndedDown)
+        {
+            GameState->tJump = 2.0f;
+        }
+        GameState->tJump -= 0.033f;
     }
 
     /*if (Input.AButtonEndedDown)
@@ -98,6 +161,7 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 
     // TODO: allow sample offsets heere
     RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
+    RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY);
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)

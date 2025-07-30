@@ -120,20 +120,20 @@ struct game_controller_input
     char IsAnalog;
     char IsConnected;
 
-    float StartX;
-    float StartY;
+    real32 StartX;
+    real32 StartY;
 
-    float MinX;
-    float MinY;
+    real32 MinX;
+    real32 MinY;
 
-    float MaxX;
-    float MaxY;
+    real32 MaxX;
+    real32 MaxY;
 
-    float EndX;
-    float EndY;
+    real32 EndX;
+    real32 EndY;
 
     union {
-        game_button_state Buttons[6];
+        game_button_state Buttons[12];
         struct
         {
             game_button_state MoveUp;
@@ -148,6 +148,9 @@ struct game_controller_input
 
             game_button_state LeftShoulder;
             game_button_state RightShoulder;
+
+            game_button_state Start;
+            game_button_state Back;
 
             game_button_state Terminator; // All buttons must be added above this line
         };
@@ -174,6 +177,11 @@ struct game_state
     int BlueOffset;
 
     real32 tSine;
+
+    int PlayerX;
+    int PlayerY;
+
+    real32 tJump;
 };
 
 struct game_input
