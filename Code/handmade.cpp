@@ -1,26 +1,26 @@
 #include "handmade.h"
-static void GameOutputSound(game_state *GameState,
-                            game_sound_output_buffer *SoundBuffer,
-                            int ToneHz)
+internal void GameOutputSound(game_state *GameState,
+                              game_sound_output_buffer *SoundBuffer,
+                              int ToneHz)
 {
 
-    int16_t ToneVolume = 200;
+    int16 ToneVolume = 200;
     int WavePeriod = SoundBuffer->SamplesPerSecond / ToneHz;
 
-    int16_t *SampleOut = SoundBuffer->Samples;
-    for (int Sampleindex = 0; Sampleindex < SoundBuffer->SampleCountToOutput; ++Sampleindex)
+    int16 *SampleOut = SoundBuffer->Samples;
+    for (int SampleIndex = 0; SampleIndex < SoundBuffer->SampleCount; ++SampleIndex)
     {
 
-#if 0
+#if 1
         float SineValue = sinf(GameState->tSine);
-        int16 SampleValue = (int16_t)(SineValue * ToneVolume);
+        int16 SampleValue = (int16)(SineValue * ToneVolume);
 #else
         int16 SampleValue = 0;
 #endif
         *SampleOut++ = SampleValue;
         *SampleOut++ = SampleValue;
 
-        GameState->tSine += 2.0f * Pi32 * 1.0f / (float)WavePeriod;
+        GameState->tSine += 2.0f * Pi32 * 1.0f / (real32)WavePeriod;
         if (GameState->tSine > 2.0f * Pi32)
         {
             GameState->tSine -= 2.0f * Pi32;
@@ -42,7 +42,7 @@ static void RenderWeirdGradient(game_offscreen_buffer *Buffer, int XOffset, int 
             uint8_t Blue = x + XOffset;
             uint8_t Green = y + YOffset;
 
-            *Pixel++ = ((Green << 8) | Blue);
+            *Pixel++ = ((Green << 16) | Blue);
         }
         Row += Buffer->Pitch;
     }

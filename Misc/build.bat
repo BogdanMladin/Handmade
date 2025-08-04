@@ -1,6 +1,7 @@
 @echo off
 
-set CommonCompilerFlags=-MT -Gm- -GR -EHa- -Od -Oi -W4 -wd4201 -wd4100 -wd4189 -DHANDMADE_INTERNAL=1 -DHANDMADE_SLOW=1 -DHANDMADE_WIN32=1 -FC -Z7
+rem The d from -MTd links the c runtime library in debug mode, remove the d for shipping
+set CommonCompilerFlags=-MTd -Gm- -GR -EHa- -Od -Oi -W4 -wd4201 -wd4100 -wd4189 -DHANDMADE_INTERNAL=1 -DHANDMADE_SLOW=1 -DHANDMADE_WIN32=1 -FC -Z7
 rem removed -WX because it treats all warnings as errors and i cant deal with that
 rem removed -nologo cuz i wannna see the logo
 
@@ -12,7 +13,7 @@ pushd ..\..\Build
 rem del *.pdb > NUL 2> NULL
 del *.pdb
 
-rem cl %CommonCompilerFlags% ..\handmade\code\handmade.cpp -Fmhandmade.map -LD /link /PDB:handmade_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~3,2%%time:~6,2%.pdb -EXPORT:GameGetSoundSamples -EXPORT:GameUpdateAndRender
+rem cl %CommonCompilerFlags% ..\handmade\code\handmade.cpp -Fmhandmade.map -LD /link /PDB:handmade_%random%.pdb -EXPORT:GameGetSoundSamples -EXPORT:GameUpdateAndRender
 rem the /PDB flag fixes a problem that I don't have
 
 cl %CommonCompilerFlags% ..\handmade\code\handmade.cpp -Fmhandmade.map -LD /link -incremental:no  -EXPORT:GameGetSoundSamples -EXPORT:GameUpdateAndRender

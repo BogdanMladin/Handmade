@@ -105,7 +105,7 @@ struct game_offscreen_buffer
 struct game_sound_output_buffer
 {
     int SamplesPerSecond;
-    int SampleCountToOutput;
+    int SampleCount;
     int16_t *Samples;
 };
 
@@ -199,13 +199,7 @@ inline game_controller_input *GetController(game_input *Input, int ControllerInd
 #define GAME_UPDATE_AND_RENDER(name)                                                               \
     void name(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
-GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
-{
-}
 
 #define GAME_GET_SOUND_SAMPLES(name)                                                               \
     void name(game_memory *Memory, game_sound_output_buffer *SoundBuffer)
 typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
-GAME_GET_SOUND_SAMPLES(GameGetSoundSamplesStub)
-{
-}
