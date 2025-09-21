@@ -1,3 +1,4 @@
+#if !defined(HANDMADE_H)
 /*
     NOTE:
 
@@ -52,13 +53,17 @@ typedef double real64;
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof((Array)[0]))
 
-inline uint32_t SafeTruncateUint64(uint16_t Value)
+inline uint32 SafeTruncateUint64(uint64 Value)
 {
     Assert(Value <= 0xFFFFFFFF);
     uint32_t Result = (uint32_t)Value;
     return (Result);
 }
 
+struct thread_context // Introduced: D25/11:17
+{
+    int PlaceHolder;
+};
 /*
     Services Platform to Game
 */
@@ -76,13 +81,13 @@ struct debug_read_file_result
 
 // clang-format off
 
-#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(char *Filename)
-typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
-
-#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(void *Memory)
+#define DEBUG_PLATFORM_FREE_FILE_MEMORY(name) void name(thread_context *Thread, void *Memory)
 typedef DEBUG_PLATFORM_FREE_FILE_MEMORY(debug_platform_free_file_memory);
 
-#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(char *Filename, uint32_t MemorySize, void *Memory)
+#define DEBUG_PLATFORM_READ_ENTIRE_FILE(name) debug_read_file_result name(thread_context *Thread, char *Filename)
+typedef DEBUG_PLATFORM_READ_ENTIRE_FILE(debug_platform_read_entire_file);
+
+#define DEBUG_PLATFORM_WRITE_ENTIRE_FILE(name) bool32 name(thread_context *Thread, char *Filename, uint32_t MemorySize, void *Memory)
 typedef DEBUG_PLATFORM_WRITE_ENTIRE_FILE(debug_platform_write_entire_file);
 
 // #endif // HANDMADE_INTERNAL
@@ -112,13 +117,13 @@ struct game_sound_output_buffer
 struct game_button_state
 {
     int HalfTransitionCount;
-    char EndedDown;
+    bool32 EndedDown;
 };
 
 struct game_controller_input
 {
-    char IsAnalog;
-    char IsConnected;
+    bool32 IsAnalog;
+    bool32 IsConnected;
 
     real32 StartX;
     real32 StartY;
@@ -157,9 +162,25 @@ struct game_controller_input
     };
 };
 
+struct game_input
+{
+    // NOTE(Bog): This is not propper mouse handling
+    game_button_state MouseButtons[5];
+    int32 MouseX, MouseY, MouseZ;
+
+    game_controller_input Controllers[1];
+};
+
+inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
+{
+    Assert(ControllerIndex < ArrayCount(Input->Controllers));
+    game_controller_input *Result = &Input->Controllers[ControllerIndex];
+    return Result;
+}
+
 struct game_memory
 {
-    char IsInitialised;
+    bool32 IsInitialised;
     uint64_t PermanentStorageSize;
     void *PermanentStorage; // REQUIRED to be cleared to 0 at startup
     uint64_t TransientStorageSize;
@@ -169,6 +190,17 @@ struct game_memory
     debug_platform_free_file_memory *DEBUGPlatformFreeFileMemory;
     debug_platform_write_entire_file *DEBUGPlatformWriteEntireFile;
 };
+
+#define GAME_UPDATE_AND_RENDER(name)                                                               \
+    void name(thread_context *Thread,                                                              \
+              game_memory *Memory,                                                                 \
+              game_input *Input,                                                                   \
+              game_offscreen_buffer *Buffer)
+typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
+
+#define GAME_GET_SOUND_SAMPLES(name)                                                               \
+    void name(thread_context *Thread, game_memory *Memory, game_sound_output_buffer *SoundBuffer)
+typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
 
 struct game_state
 {
@@ -184,22 +216,5 @@ struct game_state
     real32 tJump;
 };
 
-struct game_input
-{
-    game_controller_input Controllers[1];
-};
-
-inline game_controller_input *GetController(game_input *Input, int ControllerIndex)
-{
-    Assert(ControllerIndex < ArrayCount(Input->Controllers));
-    game_controller_input *Result = &Input->Controllers[ControllerIndex];
-    return Result;
-}
-
-#define GAME_UPDATE_AND_RENDER(name)                                                               \
-    void name(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer)
-typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
-
-#define GAME_GET_SOUND_SAMPLES(name)                                                               \
-    void name(game_memory *Memory, game_sound_output_buffer *SoundBuffer)
-typedef GAME_GET_SOUND_SAMPLES(game_get_sound_samples);
+#define HANDMADE_H
+#endif

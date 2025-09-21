@@ -83,13 +83,14 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     if (!Memory->IsInitialised)
     {
         char *Filename = __FILE__;
-        debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Filename);
+        debug_read_file_result File = Memory->DEBUGPlatformReadEntireFile(Thread, Filename);
         if (File.Contents)
         {
-            Memory->DEBUGPlatformWriteEntireFile("w:/handmade/data/test.out",
+            Memory->DEBUGPlatformWriteEntireFile(Thread,
+                                                 "w:/handmade/data/test.out",
                                                  File.ContentSize,
                                                  File.Contents);
-            Memory->DEBUGPlatformFreeFileMemory(File.Contents);
+            Memory->DEBUGPlatformFreeFileMemory(Thread, File.Contents);
         }
 
         GameState->ToneHz = 256;
@@ -162,6 +163,15 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // TODO: allow sample offsets heere
     RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
     RenderPlayer(Buffer, GameState->PlayerX, GameState->PlayerY);
+    RenderPlayer(Buffer, Input->MouseX, Input->MouseY);
+
+    for (int ButtonIndex = 0; ButtonIndex < ArrayCount(Input->MouseButtons); ++ButtonIndex)
+    {
+        if (Input->MouseButtons[ButtonIndex].EndedDown)
+        {
+            RenderPlayer(Buffer, 10 + 20 * ButtonIndex, 10);
+        }
+    }
 }
 
 extern "C" GAME_GET_SOUND_SAMPLES(GameGetSoundSamples)
