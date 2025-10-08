@@ -327,13 +327,11 @@ static void Win32ProcessKeyboardMessage(game_button_state *NewState, bool32 IsDo
     }
 }
 
-internal void Win32GetInputFileLocation(win32_state *State,
-                                        int SlotIndex,
-                                        int DestCount,
-                                        char *Dest)
+internal void Win32GetInputFileLocation(
+    win32_state *State, bool32 InputStream, int SlotIndex, int DestCount, char *Dest)
 {
     char Temp[64];
-    wsprintf(Temp, "loop_edit_%d.hmi", SlotIndex);
+    wsprintf(Temp, "loop_edit_%d_%s.hmi", SlotIndex, InputStream ? "input" : "state");
     Win32BuidlEXEPathFileName(State, Temp, DestCount, Dest);
 }
 
@@ -353,11 +351,17 @@ internal void Win32BeginRecordingInput(win32_state *State, int InputRecordingInd
     {
 
         State->InputRecordingIndex = InputRecordingIndex;
-        State->RecordingHandle = ReplayBuffer->FileHandle;
 
+        char FileName[WIN32_STATE_FILE_NAME_COUNT];
+        Win32GetInputFileLocation(State, true, InputRecordingIndex, sizeof(FileName), FileName);
+
+        State->RecordingHandle = CreateFileA(FileName, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, 0, 0);
+
+#if 0
         LARGE_INTEGER FilePosition;
         FilePosition.QuadPart = State->TotalSize;
         SetFilePointerEx(State->RecordingHandle, FilePosition, 0, FILE_BEGIN);
+#endif
 
         CopyMemory(ReplayBuffer->MemoryBlock, State->GameMemoryBlock, State->TotalSize);
     }
@@ -376,11 +380,16 @@ internal void Win32BeginInputPlayBack(win32_state *State, int InputPlayingIndex)
     if (ReplayBuffer->MemoryBlock)
     {
         State->InputPlayingIndex = InputPlayingIndex;
-        State->PlayBackHandle = ReplayBuffer->FileHandle;
 
+        char FileName[WIN32_STATE_FILE_NAME_COUNT];
+        Win32GetInputFileLocation(State, true, InputPlayingIndex, sizeof(FileName), FileName);
+        State->PlayBackHandle = CreateFileA(FileName, GENERIC_READ, 0, 0, OPEN_EXISTING, 0, 0);
+
+#if 0
         LARGE_INTEGER FilePosition;
         FilePosition.QuadPart = State->TotalSize;
         SetFilePointerEx(State->PlayBackHandle, FilePosition, 0, FILE_BEGIN);
+#endif
 
         CopyMemory(State->GameMemoryBlock, ReplayBuffer->MemoryBlock, State->TotalSize);
     }
@@ -510,14 +519,22 @@ static void Win32ProcessPendingMessages(win32_state *State,
                 {
                     if (IsDown)
                     {
-                        if (State->InputRecordingIndex == 0)
+                        if (State->InputPlayingIndex == 0)
                         {
-                            Win32BeginRecordingInput(State, 1);
+
+                            if (State->InputRecordingIndex == 0)
+                            {
+                                Win32BeginRecordingInput(State, 1);
+                            }
+                            else
+                            {
+                                Win32EndRecordingInput(State);
+                                Win32BeginInputPlayBack(State, 1);
+                            }
                         }
                         else
                         {
-                            Win32EndRecordingInput(State);
-                            Win32BeginInputPlayBack(State, 1);
+                            Win32EndInputPlayBack(State);
                         }
                     }
                 }
@@ -889,6 +906,7 @@ inline void win32DrawSoundBufferMarker(win32_offscreeen_buffer *Backbuffer,
     win32DebugDrawVertical(Backbuffer, X, Top, Bottom, Color);
 }
 
+#if 0
 static void win32DebugSyncDisplay(win32_offscreeen_buffer *Backbuffer,
                                   int MarkerCount,
                                   win32_debug_time_marker *Markers,
@@ -965,6 +983,7 @@ static void win32DebugSyncDisplay(win32_offscreeen_buffer *Backbuffer,
         // clang-format on
     }
 }
+#endif
 
 int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
@@ -1099,6 +1118,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             win32_replay_buffer *ReplayBuffer = &Win32State.ReplayBuffers[ReplayIndex];
 
             Win32GetInputFileLocation(&Win32State,
+                                      false,
                                       ReplayIndex,
                                       sizeof(ReplayBuffer->FileName),
                                       ReplayBuffer->FileName);
@@ -1323,33 +1343,35 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                         }
 
 #if HANDMADE_INTERNAL
-                        // GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
-                        //
-                        // win32_debug_time_marker *Marker =
-                        // &DebugTimeMarkers[DebugTimeMarkerIndex]; Marker->OutputPlayCursor =
-                        // PlayCursor; Marker->OutputWriteCursor = WriteCursor;
-                        // Marker->OutputLocation = ByteToLock;
-                        // Marker->OutputByteCount = BytesToWrite;
-                        // Marker->ExpectedFlipPlayCursor = ExpectedFrameBoundaryByte;
-                        //
-                        // DWORD UnwrappedWriteCursor = WriteCursor;
-                        // if (UnwrappedWriteCursor < PlayCursor)
-                        // {
-                        //     UnwrappedWriteCursor += SoundOutput.SecondaryBufferSize;
-                        // }
-                        //
-                        // AudioLatencyBytes = UnwrappedWriteCursor - PlayCursor;
-                        // AudioLatencySeconds =
-                        //     (((float)AudioLatencyBytes / (float)SoundOutput.BytesPerSample) /
-                        //      (float)SoundOutput.SamplesPerSecond);
-                        //
-                        // char TextBuffer[256];
-                        // sprintf_s(TextBuffer, sizeof(TextBuffer),
-                        //           "BTL:%u TC:%u BTW:%u - PC:%u WC:%u DELTA:%u "
-                        //           "(%fs)/n",
-                        //           ByteToLock, TargetCursor, BytesToWrite, PlayCursor,
-                        //           WriteCursor, AudioLatencyBytes, AudioLatencySeconds);
-                        // OutputDebugStringA(TextBuffer);
+                        GlobalSecondaryBuffer->GetCurrentPosition(&PlayCursor, &WriteCursor);
+
+                        win32_debug_time_marker *Marker = &DebugTimeMarkers[DebugTimeMarkerIndex];
+                        Marker->OutputPlayCursor = PlayCursor;
+                        Marker->OutputWriteCursor = WriteCursor;
+                        Marker->OutputLocation = ByteToLock;
+                        Marker->OutputByteCount = BytesToWrite;
+                        Marker->ExpectedFlipPlayCursor = ExpectedFrameBoundaryByte;
+
+                        DWORD UnwrappedWriteCursor = WriteCursor;
+                        if (UnwrappedWriteCursor < PlayCursor)
+                        {
+                            UnwrappedWriteCursor += SoundOutput.SecondaryBufferSize;
+                        }
+
+                        AudioLatencyBytes = UnwrappedWriteCursor - PlayCursor;
+                        AudioLatencySeconds =
+                            (((float)AudioLatencyBytes / (float)SoundOutput.BytesPerSample) /
+                             (float)SoundOutput.SamplesPerSecond);
+
+#if 0
+                        char TextBuffer[256];
+                        sprintf_s(TextBuffer, sizeof(TextBuffer),
+                                  "BTL:%u TC:%u BTW:%u - PC:%u WC:%u DELTA:%u "
+                                  "(%fs)/n",
+                                  ByteToLock, TargetCursor, BytesToWrite, PlayCursor,
+                                  WriteCursor, AudioLatencyBytes, AudioLatencySeconds);
+                        OutputDebugStringA(TextBuffer);
+#endif
 #endif
                         Win32FillSoundBuffer(&SoundOutput, ByteToLock, BytesToWrite, &SoundBuffer);
                     }
@@ -1405,14 +1427,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
                     win32_Window_Dimension Dimension = win32GetWindowDimension(WindowHandle);
 
-#if HANDMADE_INTERNAL
-                    win32DebugSyncDisplay(&GlobalBackbuffer,
-                                          ArrayCount(DebugTimeMarkers),
-                                          DebugTimeMarkers,
-                                          DebugTimeMarkerIndex - 1,
-                                          &SoundOutput,
-                                          TargetSecondsPerFrame);
-#endif
+                    // #if HANDMADE_INTERNAL //Render the debug sound display
+                    //  win32DebugSyncDisplay(&GlobalBackbuffer,
+                    //                        ArrayCount(DebugTimeMarkers),
+                    //                        DebugTimeMarkers,
+                    //                        DebugTimeMarkerIndex - 1,
+                    //                        &SoundOutput,
+                    //                        TargetSecondsPerFrame);
+                    // #endif
 
                     HDC DeviceContext = GetDC(WindowHandle);
                     win32DisplayBufferInWindow(&GlobalBackbuffer,
