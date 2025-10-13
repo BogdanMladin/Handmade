@@ -511,43 +511,41 @@ static void Win32ProcessPendingMessages(win32_state *State,
                 else if (VKCode == 'P')
                 {
                     if (IsDown)
-                    {
                         GlobalPause = !GlobalPause;
-                    }
                 }
-                else if (VKCode == 'L')
+            }
+            else if (VKCode == 'L')
+            {
+                if (IsDown)
                 {
-                    if (IsDown)
+                    if (State->InputPlayingIndex == 0)
                     {
-                        if (State->InputPlayingIndex == 0)
-                        {
 
-                            if (State->InputRecordingIndex == 0)
-                            {
-                                Win32BeginRecordingInput(State, 1);
-                            }
-                            else
-                            {
-                                Win32EndRecordingInput(State);
-                                Win32BeginInputPlayBack(State, 1);
-                            }
+                        if (State->InputRecordingIndex == 0)
+                        {
+                            Win32BeginRecordingInput(State, 1);
                         }
                         else
                         {
-                            Win32EndInputPlayBack(State);
+                            Win32EndRecordingInput(State);
+                            Win32BeginInputPlayBack(State, 1);
                         }
                     }
-                }
-
-#endif
-                bool32 AltKeyWasDown = (Message.lParam & (1 << 29));
-                if (VKCode == VK_F4)
-                {
-                    GlobalRunning = false;
+                    else
+                    {
+                        Win32EndInputPlayBack(State);
+                    }
                 }
             }
-            break;
+
+#endif
+            bool32 AltKeyWasDown = (Message.lParam & (1 << 29));
+            if (VKCode == VK_F4)
+            {
+                GlobalRunning = false;
+            }
         }
+        break;
 
         default: {
             TranslateMessage(&Message);
@@ -1092,7 +1090,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 #if HANDMADE_INTERNAL
         LPVOID BaseAddress = (LPVOID)Terabytes((uint64_t)1);
 #else
-        LPVOID BaseAddress = 0;
+            LPVOID BaseAddress = 0;
 #endif
 
         game_memory GameMemory = {};
@@ -1131,15 +1129,14 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                                                    0,
                                                    0);
 
-            DWORD MaxSizeHigh = (Win32State.TotalSize >> 32);
-            DWORD MaxSizeLow = Win32State.TotalSize & 0xFFFFFFFF;
+            LARGE_INTEGER MaxSize;
+            MaxSize.QuadPart = Win32State.TotalSize;
             ReplayBuffer->MemoryMap = CreateFileMapping(ReplayBuffer->FileHandle,
                                                         0,
                                                         PAGE_READWRITE,
-                                                        MaxSizeHigh,
-                                                        MaxSizeLow,
+                                                        MaxSize.HighPart,
+                                                        MaxSize.LowPart,
                                                         0);
-            DWORD Error = GetLastError();
 
             ReplayBuffer->MemoryBlock = MapViewOfFile(ReplayBuffer->MemoryMap,
                                                       FILE_MAP_ALL_ACCESS,
