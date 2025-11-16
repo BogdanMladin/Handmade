@@ -714,6 +714,7 @@ struct win32_offscreeen_buffer
 };
 static win32_offscreeen_buffer GlobalBackbuffer;
 
+/*
 static void RenderWeirdGradient(win32_offscreeen_buffer Buffer, int XOffset, int YOffset)
 {
     uint8_t *Row = (uint8_t *)Buffer.Memory; // unsigned char == uint8 == 8 bytes unsigned
@@ -732,6 +733,7 @@ static void RenderWeirdGradient(win32_offscreeen_buffer Buffer, int XOffset, int
         Row += Buffer.Pitch;
     }
 }
+*/
 
 static void win32resizeDIBsection(win32_offscreeen_buffer *Buffer, int Width, int Height)
 {
@@ -761,8 +763,6 @@ static void win32resizeDIBsection(win32_offscreeen_buffer *Buffer, int Width, in
     Buffer->Memory = VirtualAlloc(0, BitmapMemorySize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 
     Buffer->Pitch = Buffer->Width * Buffer->BytesPerPixel;
-
-    RenderWeirdGradient(GlobalBackbuffer, 0, 0);
 }
 
 static void win32DisplayBufferInWindow(win32_offscreeen_buffer *Buffer,
@@ -1011,7 +1011,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     char SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMs) == TIMERR_NOERROR);
     WNDCLASS WindowClass = {};
 
-    win32resizeDIBsection(&GlobalBackbuffer, 1280, 720);
+    win32resizeDIBsection(&GlobalBackbuffer, 960, 540);
 
     WindowClass.style = CS_HREDRAW | CS_VREDRAW;
     WindowClass.lpfnWndProc = MainWindowCallback;
@@ -1156,8 +1156,9 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
         {
             game_input Input[2] = {};
-            game_input *OldInput = &Input[1];
             game_input *NewInput = &Input[0];
+            game_input *OldInput = &Input[1];
+            NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
 
             LARGE_INTEGER LastCounter = win32GetWallClock();
             LARGE_INTEGER FlipWallClock = win32GetWallClock();
