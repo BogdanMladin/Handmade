@@ -1045,7 +1045,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         ReleaseDC(WindowHandle, RefreshDC);
         if (Win32RefreshRate > 1)
         {
-            MonitorRefreshHz = Win32RefreshRate;
+            // This gets the monitors refresh rate, if commented uses default
+            //  MonitorRefreshHz = Win32RefreshRate;
         }
         real32 GameUpdateHz = (MonitorRefreshHz / 2.0f);
 
@@ -1158,7 +1159,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             game_input Input[2] = {};
             game_input *NewInput = &Input[0];
             game_input *OldInput = &Input[1];
-            NewInput->SecondsToAdvanceOverUpdate = TargetSecondsPerFrame;
+            NewInput->dTForFrame = TargetSecondsPerFrame;
 
             LARGE_INTEGER LastCounter = win32GetWallClock();
             LARGE_INTEGER FlipWallClock = win32GetWallClock();
@@ -1464,10 +1465,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                     NewInput = OldInput;
                     OldInput = Temp;
 
+#if 1
                     uint64_t EndCycleCount = __rdtsc();
                     uint64_t CyclesElapsed = EndCycleCount - LastCycleCount;
                     LastCycleCount = EndCycleCount;
-                    // #if 0
                     float FPS = 0.0f;
                     float MCPF = (float)(CyclesElapsed / (1000.0f * 1000.0f));
 
@@ -1479,7 +1480,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                               FPS,
                               MCPF);
                     OutputDebugString(tempBuffer);
-                    // #endif
+#endif
 
 #if HANDMADE_INTERNAL
                     ++DebugTimeMarkerIndex;
