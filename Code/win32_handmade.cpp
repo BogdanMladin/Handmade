@@ -770,9 +770,15 @@ static void win32DisplayBufferInWindow(win32_offscreeen_buffer *Buffer,
                                        int WindowWidth,
                                        int WindowHeight)
 {
+    int OffsetX = 10;
+    int OffsetY = 10;
+    PatBlt(DeviceContext, 0, 0, WindowWidth, OffsetY, BLACKNESS);
+    PatBlt(DeviceContext, 0, OffsetY + Buffer->Height, WindowWidth, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, 0, 0, OffsetX, WindowHeight, BLACKNESS);
+    PatBlt(DeviceContext, OffsetX + Buffer->Width, 0, WindowWidth, WindowHeight, BLACKNESS);
     StretchDIBits(DeviceContext,
-                  0,
-                  0,
+                  OffsetX,
+                  OffsetY,
                   Buffer->Width,
                   Buffer->Height,
                   0,
@@ -1046,7 +1052,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         if (Win32RefreshRate > 1)
         {
             // This gets the monitors refresh rate, if commented uses default
-            //  MonitorRefreshHz = Win32RefreshRate;
+            // MonitorRefreshHz = Win32RefreshRate;
         }
         real32 GameUpdateHz = (MonitorRefreshHz / 2.0f);
 
@@ -1159,7 +1165,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             game_input Input[2] = {};
             game_input *NewInput = &Input[0];
             game_input *OldInput = &Input[1];
-            NewInput->dTForFrame = TargetSecondsPerFrame;
 
             LARGE_INTEGER LastCounter = win32GetWallClock();
             LARGE_INTEGER FlipWallClock = win32GetWallClock();
@@ -1179,6 +1184,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             GlobalRunning = true;
             while (GlobalRunning)
             {
+                NewInput->dTForFrame = TargetSecondsPerFrame;
 
                 FILETIME NewDLLWriteTime = Win32GetLastWriteTime(SourceGameCodeDLLFullPath);
                 if (CompareFileTime(&NewDLLWriteTime, &Game.DLLLastWriteTime) != 0)
@@ -1465,7 +1471,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                     NewInput = OldInput;
                     OldInput = Temp;
 
-#if 1
+#if 0
                     uint64_t EndCycleCount = __rdtsc();
                     uint64_t CyclesElapsed = EndCycleCount - LastCycleCount;
                     LastCycleCount = EndCycleCount;
