@@ -228,6 +228,8 @@ extern "C" GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     tile_map *TileMap = &TileMaps[0][0];
 
     world World;
+    World.TileMapCountX = 2;
+    World.TileMapCountY = 2;
     World.TileMaps = (tile_map *)TileMaps;
 
     real32 PlayerWidth = 0.75f * TileMap->TileWidth;
